@@ -72,7 +72,7 @@ Open `config.js` and modify your settings:
 ```
 
 ### 5. Run the Bot
-node index.js
+`node index.js`
 
 ---
 
