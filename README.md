@@ -5,7 +5,8 @@ A simple Discord bot that sends a warm embedded welcome message when someone joi
 ---
 
 ## 📁 Project Structure
-```greeting-bot/
+```
+greeting-bot/
  ├── events/
  │ └── guildMemberAdd.js # Handles new member join event
  ├── node_modules/ # Installed packages
@@ -15,7 +16,8 @@ A simple Discord bot that sends a warm embedded welcome message when someone joi
  ├── index.js # Main bot startup file
  ├── package.json # Project metadata and dependencies
  ├── package-lock.json # Exact dependency versions
- └── README.md # This file```
+ └── README.md # This file
+```
 
 ---
 
@@ -30,7 +32,7 @@ A simple Discord bot that sends a warm embedded welcome message when someone joi
 ## 🚀 Getting Started
 
 ### 1. **Clone the Repository**
-git clone https://github.com/your-username/greeting-bot.git
+git clone https://github.com/007codename/greeting-discord-bot.git
 cd greeting-bot
 
 ### 2. Install Dependencies
@@ -63,7 +65,8 @@ Open config.js and modify your settings:
   // Image URL to display in the embed.
   // Use a direct link (e.g. from Imgur or Discord CDN). Leave blank "" to skip the image.
   embedImageURL: 'https://www.icegif.com/wp-content/uploads/2023/07/icegif-489.gif'
-};```
+};
+```
 
 ### 5. Run the Bot
 node index.js
