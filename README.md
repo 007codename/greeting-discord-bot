@@ -85,6 +85,6 @@ MIT License. Feel free to fork and build on top of this.
 ---
 
 ## 🧑‍💻 Author
-Made with ❤️ by Discord Username: @007codename
+Made with ❤️ by Username: @007codename
 
 ---
