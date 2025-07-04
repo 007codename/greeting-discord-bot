@@ -32,21 +32,24 @@ greeting-bot/
 ## 🚀 Getting Started
 
 ### 1. **Clone the Repository**
+```
 git clone https://github.com/007codename/greeting-discord-bot.git
 cd greeting-bot
+```
 
 ### 2. Install Dependencies
-npm install
+`npm install`
+
 
 ### 3. Set Up Environment Variables
-* Create a .env file in the root directory:
-touch .env
+* Create a `.env` file in the root directory:
+``touch .env``
 * Then add your bot token:
-DISCORD_TOKEN=your_bot_token_here
-#### ⚠️ Important: Never share your bot token. This .env file is included in .gitignore.
+``DISCORD_TOKEN=your_bot_token_here``
+#### ⚠️ Important: Never share your bot token. This `.env` file is included in `.gitignore`.
 
 ### 4. Configure the Bot
-Open config.js and modify your settings:
+Open `config.js` and modify your settings:
 ```module.exports = {
   // The channel ID where the bot should send welcome messages.
   // To get this, enable Developer Mode in Discord settings, right-click the channel, and click "Copy ID".
