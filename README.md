@@ -34,7 +34,7 @@ greeting-bot/
 ### 1. **Clone the Repository**
 ```
 git clone https://github.com/007codename/greeting-discord-bot.git
-cd greeting-bot
+cd greeting-discord-bot
 ```
 
 ### 2. Install Dependencies
@@ -50,7 +50,8 @@ cd greeting-bot
 
 ### 4. Configure the Bot
 Open `config.js` and modify your settings:
-```module.exports = {
+```
+module.exports = {
   // The channel ID where the bot should send welcome messages.
   // To get this, enable Developer Mode in Discord settings, right-click the channel, and click "Copy ID".
   welcomeChannelId: '1287450401297272914',
