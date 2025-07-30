@@ -1,87 +1,90 @@
-# WarmWelcome Bot
+# WelcomeWizard Bot
 
-A simple Discord bot that sends a warm embedded welcome message when someone joins your server.
+A rebranded Discord bot that sends a stylish embedded **welcome message via DMs** when someone joins your server. It also **tracks who invited who** using invite codes and stores the data in a local file.
 
 ---
 
 ## 📁 Project Structure
-```greeting-bot/
+```
+greeting-bot/
+ ├── commands/                  # Bot commands like /invite and /stats
+ ├── database/
+ │   └── invites.json           # Local database for invite tracking
  ├── events/
- │ └── guildMemberAdd.js # Handles new member join event
- ├── node_modules/ # Installed packages
- ├── .env # Contains your bot token (never share this!)
- ├── .gitignore # Ignores node_modules and .env from version control
- ├── config.js # Bot configuration settings
- ├── index.js # Main bot startup file
- ├── package.json # Project metadata and dependencies
- ├── package-lock.json # Exact dependency versions
- └── README.md # This file```
+ │   ├── guildMemberAdd.js      # Handles new member joins (sends DM, tracks invite)
+ │   ├── guildMemberRemove.js   # Handles member leaves
+ │   └── ready.js               # Logs bot startup
+ ├── utils/
+ │   └── sharedData.js          # Shared logic between modules
+ ├── .env                       # Bot token (never commit this)
+ ├── .gitignore                 # Ignores .env and node_modules
+ ├── config.json                # Bot settings (embed details, channel IDs)
+ ├── deploy-commands.js         # Slash command registration
+ ├── index.js                   # Bot entry point
+ ├── package.json               # Project metadata
+ ├── package-lock.json          # Exact dependency versions
+ └── README.md                  # You're reading this
+```
 
 ---
 
 ## 🛠️ Features
 
-- Sends a welcome message in a designated channel when a user joins
-- Modular event handling system
-- Uses environment variables for security
+- Sends a personalized DM welcome to new users
+- Tracks who invited the new member (with invite code detection)
+- `/invite` and `/stats` slash commands
+- Lightweight and modular structure
+- Uses `.env` and `config.json` for easy configuration
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. **Clone the Repository**
+### 1. Clone the Repo
+```bash
 git clone https://github.com/your-username/greeting-bot.git
 cd greeting-bot
+```
 
 ### 2. Install Dependencies
+```bash
 npm install
+```
 
 ### 3. Set Up Environment Variables
-* Create a .env file in the root directory:
-touch .env
-* Then add your bot token:
+Create a `.env` file and add your bot token:
+```env
 DISCORD_TOKEN=your_bot_token_here
-#### ⚠️ Important: Never share your bot token. This .env file is included in .gitignore.
+CLIENT_ID=your_clien_id_here
+```
+⚠️ Don't share this. It's excluded from version control via `.gitignore`.
 
 ### 4. Configure the Bot
-Open config.js and modify your settings:
-```module.exports = {
-  // The channel ID where the bot should send welcome messages.
-  // To get this, enable Developer Mode in Discord settings, right-click the channel, and click "Copy ID".
-  welcomeChannelId: '1287450401297272914',
-
-  // Title of the embed message.
-  embedTitle: '👋 Welcome to the Server G!',
-
-  // The welcome message body.
-  // Use {user} as a placeholder – it will be replaced with a mention of the new member.
-  embedMessage: 'Hey {user}, glad to have you here! 🎉',
-
-  // Embed color – you can use hexadecimal (e.g. '#3498db' for blue).
-  embedColor: '#3498db',
-
-  // Image URL to display in the embed.
-  // Use a direct link (e.g. from Imgur or Discord CDN). Leave blank "" to skip the image.
-  embedImageURL: 'https://www.icegif.com/wp-content/uploads/2023/07/icegif-489.gif'
-};```
+Edit `config.json` to fit your server:
+```json
+{
+    "guildId": "your_guild_id",
+    "joinLeaveChannelId": "your_join_leave_channel_id"
+}
+```
 
 ### 5. Run the Bot
+```bash
 node index.js
+```
 
 ---
 
 ## 🧠 Notes
-* Make sure your bot has the "Server Members Intent" enabled on the Discord Developer Portal.
-* Also enable Privileged Gateway Intents if using member joins.
+- Make sure **"Server Members Intent"** is enabled in the [Discord Developer Portal](https://discord.com/developers/applications).
+- This bot currently stores data locally. For multi-server or persistent tracking, connect to a real database.
 
 ---
 
 ## 📜 License
-MIT License. Feel free to fork and build on top of this.
+MIT License. Fork it. Remix it. Break it.
 
 ---
 
 ## 🧑‍💻 Author
-Made with ❤️ by Discord Username: @007codename
-
----
+Made with ❤️ by Discord: **@007codename**
