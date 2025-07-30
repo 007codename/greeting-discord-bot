@@ -19,7 +19,6 @@ greeting-bot/
  ├── .env                       # Bot token (never commit this)
  ├── .gitignore                 # Ignores .env and node_modules
  ├── config.json                # Bot settings (embed details, channel IDs)
- ├── deploy-commands.js         # Slash command registration
  ├── index.js                   # Bot entry point
  ├── package.json               # Project metadata
  ├── package-lock.json          # Exact dependency versions
