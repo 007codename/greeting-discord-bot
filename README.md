@@ -62,7 +62,10 @@ CLIENT_ID=your_clien_id_here
 ### 4. Configure the Bot
 Edit `config.json` to fit your server:
 ```json
-
+{
+    "guildId": "your_guild_id",
+    "joinLeaveChannelId": "your_join_leave_channel_id"
+}
 ```
 
 ### 5. Run the Bot
