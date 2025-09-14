@@ -41,7 +41,7 @@ greeting-bot/
 
 ### 1. Clone the Repo
 ```bash
-git clone https://github.com/your-username/greeting-bot.git
+git clone https://github.com/007codename/greeting-bot.git
 cd greeting-bot
 ```
 
