@@ -15,9 +15,6 @@ const client = new Client({
     ]
 });
 
-// Set max listeners to prevent warnings
-client.setMaxListeners(0);
-
 // Store guild invites for tracking
 client.guildInvites = new Map();
 
@@ -27,6 +24,7 @@ client.commands = new Collection();
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
 const commands = [];
 
 for (const file of commandFiles) {
@@ -36,9 +34,9 @@ for (const file of commandFiles) {
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
         commands.push(command.data.toJSON());
-        console.log(`👋 Loaded command: ${command.data.name}`);
+        console.log(`✅ Loaded command: ${command.data.name}`);
     } else {
-        console.log(`WelcomeWizard#2229: ❌ Command at ${filePath} is missing required properties`);
+        console.log(`❌ Command at ${filePath} is missing required properties`);
     }
 }
 
@@ -55,7 +53,7 @@ for (const file of eventFiles) {
     } else {
         client.on(event.name, (...args) => event.execute(...args));
     }
-    // console.log(`✅ Loaded event: ${event.name}`);
+    console.log(`✅ Loaded event: ${event.name}`);
 }
 
 // Handle slash command interactions
@@ -74,9 +72,9 @@ client.on('interactionCreate', async interaction => {
     } catch (error) {
         console.error('❌ Error executing command:', error);
         
-        const errorMessage = {
-            content: 'There was an error executing this command!',
-            flags: 64
+        const errorMessage = { 
+            content: 'There was an error executing this command!', 
+            ephemeral: true 
         };
         
         if (interaction.replied || interaction.deferred) {
@@ -88,37 +86,26 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Register slash commands globally
-const rest = new REST().setToken(process.env.GREETING_BOT_TOKEN);
+const rest = new REST().setToken(process.env.BOT_TOKEN);
 
 (async () => {
     try {
-        console.log(`👋 Started refreshing ${commands.length} global slash commands...`);
-        
+        console.log(`🔄 Started refreshing ${commands.length} global slash commands...`);
+
         const data = await rest.put(
-            Routes.applicationCommands(process.env.GREETING_CLIENT_ID),
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
         );
-        
-        console.log(`👋 Successfully reloaded ${data.length} global slash commands!`);
+
+        console.log(`✅ Successfully reloaded ${data.length} global slash commands!`);
     } catch (error) {
-        console.error('WelcomeWizard#2229: ❌ Error registering commands:', error);
+        console.error('❌ Error registering commands:', error);
     }
 })();
 
-// Graceful shutdown handlers
-process.on('SIGTERM', () => {
-    console.log('GreetingBot: Received SIGTERM, shutting down gracefully...');
-    client.destroy();
-});
-
-process.on('SIGINT', () => {
-    console.log('GreetingBot: Received SIGINT, shutting down gracefully...');
-    client.destroy();
-});
-
 // Error handling
 process.on('unhandledRejection', error => {
-    console.error('WelcomeWizard#2229: ❌ Unhandled promise rejection:', error);
+    console.error('❌ Unhandled promise rejection:', error);
 });
 
 // Login to Discord
