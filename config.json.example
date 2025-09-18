@@ -1,0 +1,4 @@
+{
+    "guildId": "your_guild_id",
+    "joinLeaveChannelId": "your_join_leave_channel_id"
+}
