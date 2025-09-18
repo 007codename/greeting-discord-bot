@@ -10,13 +10,14 @@ greeting-bot/
  ├── commands/                  # Bot commands like /invite and /stats
  ├── database/
  │   └── invites.json           # Local database for invite tracking
+ │   └── members.json           # Local database for member tracking
  ├── events/
  │   ├── guildMemberAdd.js      # Handles new member joins (sends DM, tracks invite)
  │   ├── guildMemberRemove.js   # Handles member leaves
  │   └── ready.js               # Logs bot startup
  ├── utils/
- │   └── sharedData.js          # Shared logic between modules
- ├── .env                       # Bot token (never commit this)
+ │   └── memberDatabase.js      # DB logic between
+ ├── .env                       # Bot token
  ├── .gitignore                 # Ignores .env and node_modules
  ├── config.json                # Bot settings
  ├── index.js                   # Bot entry point
