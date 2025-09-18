@@ -1,6 +1,6 @@
 # WelcomeWizard Bot
 
-A rebranded Discord bot that sends a stylish embedded **welcome message via DMs** when someone joins your server. It also **tracks who invited who** using invite codes and stores the data in a local file.
+A rebranded Discord bot that sends a stylish embedded **welcome message via DMs** when someone joins your server. It also **tracks who invited who** using invite codes and stores the data locally in json files.
 
 ---
 
@@ -52,15 +52,15 @@ npm install
 ```
 
 ### 3. Set Up Environment Variables
-Create a `.env` file and add your bot token:
+Rename the `.env.example` file to `.env` and add your bot token & id:
 ```env
-DISCORD_TOKEN=your_bot_token_here
-CLIENT_ID=your_clien_id_here
+BOT_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
 ```
 ⚠️ Don't share this. It's excluded from version control via `.gitignore`.
 
 ### 4. Configure the Bot
-Edit `config.json` to fit your server:
+Rename the `config.json.example` file to `config.json` and add the requested info to fit your server:
 ```json
 {
     "guildId": "your_guild_id",
@@ -77,7 +77,7 @@ node index.js
 
 ## 🧠 Notes
 - Make sure **"Server Members Intent"** is enabled in the [Discord Developer Portal](https://discord.com/developers/applications).
-- This bot currently stores data locally. For multi-server or persistent tracking, connect to a real database.
+- This bot currently stores data locally in json files. For multi-server or persistent tracking, connect to a real database.
 
 ---
 
@@ -87,4 +87,4 @@ MIT License. Fork it. Remix it. Break it.
 ---
 
 ## 🧑‍💻 Author
-Made with ❤️ by Discord: **@007codename**
+Discord: **@007codename**
