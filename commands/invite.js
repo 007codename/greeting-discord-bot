@@ -1,4 +1,4 @@
-// commands/invites.js - Invites management command
+// commands/invites.js - Unified Invites management command
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -40,150 +40,177 @@ module.exports = {
         .setName('invites')
         .setDescription('Manage tracked invites')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Add an invite to track')
-                .addStringOption(option =>
-                    option
-                        .setName('invite')
-                        .setDescription('The invite link or code')
-                        .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName('name')
-                        .setDescription('Custom name for this invite source (e.g., "YouTube Comments", "Partnership")')
-                        .setRequired(true)
-                )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('remove')
-                .setDescription('Remove an invite from tracking')
-                .addStringOption(option =>
-                    option
-                        .setName('invite')
-                        .setDescription('The invite link or code to remove')
-                        .setRequired(true)
-                )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('list')
-                .setDescription('List all tracked invites')
-        ),
+        .addStringOption(option =>
+            option.setName('action')
+                .setDescription('Action to perform')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Add Invite', value: 'add' },
+                    { name: 'Remove Invite', value: 'remove' },
+                    { name: 'List All Invites', value: 'list' }
+                ))
+        .addStringOption(option =>
+            option.setName('invite')
+                .setDescription('The invite link or code (required for add/remove)')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('name')
+                .setDescription('Custom name for this invite source (required for add)')
+                .setRequired(false)),
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
+        const action = interaction.options.getString('action');
+        const inviteInput = interaction.options.getString('invite');
+        const customName = interaction.options.getString('name');
 
-        if (subcommand === 'add') {
-            const inviteInput = interaction.options.getString('invite');
-            const customName = interaction.options.getString('name');
-
-            // Extract invite code from URL or use as-is
-            const inviteCode = inviteInput.replace(/https?:\/\/(www\.)?(discord\.gg\/|discordapp\.com\/invite\/)/, '');
-
-            try {
-                // Verify the invite exists in this guild
-                const invite = await interaction.guild.invites.fetch(inviteCode);
-                
-                // Load current tracked invites
-                const trackedInvites = loadTrackedInvites();
-                
-                // Add new invite
-                trackedInvites[inviteCode] = {
-                    name: customName,
-                    uses: invite.uses,
-                    addedAt: new Date().toISOString(),
-                    addedBy: interaction.user.tag
-                };
-
-                // Save to database
-                if (saveTrackedInvites(trackedInvites)) {
-                    const successEmbed = new EmbedBuilder()
-                        .setColor(0x00FF00)
-                        .setTitle('✅ Invite Added Successfully')
-                        .addFields(
-                            { name: 'Invite Code', value: `\`${inviteCode}\``, inline: true },
-                            { name: 'Custom Name', value: customName, inline: true },
-                            { name: 'Current Uses', value: invite.uses.toString(), inline: true }
-                        )
-                        .setTimestamp();
-
-                    await interaction.reply({ embeds: [successEmbed], flags: 64 });
-                } else {
-                    await interaction.reply({ 
-                        content: '❌ Failed to save invite to database.', 
-                        flags: 64 
-                    });
-                }
-
-            } catch (error) {
-                console.error('Error adding invite:', error);
-                await interaction.reply({ 
-                    content: '❌ Invalid invite code or invite not found in this server.', 
-                    flags: 64 
+        try {
+            if (action === 'add') {
+                await handleAddInvite(interaction, inviteInput, customName);
+            } else if (action === 'remove') {
+                await handleRemoveInvite(interaction, inviteInput);
+            } else if (action === 'list') {
+                await handleListInvites(interaction);
+            }
+        } catch (error) {
+            console.error('❌ Error in invites command:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Error processing invite command.',
+                    flags: 64
                 });
             }
-
-        } else if (subcommand === 'remove') {
-            const inviteInput = interaction.options.getString('invite');
-            const inviteCode = inviteInput.replace(/https?:\/\/(www\.)?(discord\.gg\/|discordapp\.com\/invite\/)/, '');
-
-            const trackedInvites = loadTrackedInvites();
-
-            if (trackedInvites[inviteCode]) {
-                const removedInvite = trackedInvites[inviteCode];
-                delete trackedInvites[inviteCode];
-
-                if (saveTrackedInvites(trackedInvites)) {
-                    const removeEmbed = new EmbedBuilder()
-                        .setColor(0xFF0000)
-                        .setTitle('🗑️ Invite Removed')
-                        .setDescription(`Removed tracking for **${removedInvite.name}** (\`${inviteCode}\`)`)
-                        .setTimestamp();
-
-                    await interaction.reply({ embeds: [removeEmbed], flags: 64 });
-                } else {
-                    await interaction.reply({ 
-                        content: '❌ Failed to remove invite from database.', 
-                        ephemeral: true 
-                    });
-                }
-            } else {
-                await interaction.reply({ 
-                    content: '❌ This invite is not being tracked.', 
-                    ephemeral: true 
-                });
-            }
-
-        } else if (subcommand === 'list') {
-            const trackedInvites = loadTrackedInvites();
-            
-            if (Object.keys(trackedInvites).length === 0) {
-                await interaction.reply({ 
-                    content: '📝 No invites are currently being tracked.', 
-                    ephemeral: true 
-                });
-                return;
-            }
-
-            const listEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('🔗 Tracked Invites')
-                .setTimestamp();
-
-            let description = '';
-            for (const [code, data] of Object.entries(trackedInvites)) {
-                description += `**${data.name}**\n`;
-                description += `Code: \`${code}\`\n`;
-                description += `Uses: ${data.uses}\n`;
-                description += `Added: ${new Date(data.addedAt).toLocaleDateString()}\n\n`;
-            }
-
-            listEmbed.setDescription(description);
-            await interaction.reply({ embeds: [listEmbed], flags: 64 });
         }
     }
 };
+
+// Helper functions
+async function handleAddInvite(interaction, inviteInput, customName) {
+    if (!inviteInput || !customName) {
+        await interaction.reply({
+            content: '❌ Both invite and name are required for adding an invite.',
+            flags: 64
+        });
+        return;
+    }
+
+    // Extract invite code from URL or use as-is
+    const inviteCode = inviteInput.replace(/https?:\/\/(www\.)?(discord\.gg\/|discordapp\.com\/invite\/)/, '');
+
+    try {
+        // Verify the invite exists in this guild
+        const invite = await interaction.guild.invites.fetch(inviteCode);
+        
+        // Load current tracked invites
+        const trackedInvites = loadTrackedInvites();
+        
+        // Check if invite is already tracked
+        if (trackedInvites[inviteCode]) {
+            await interaction.reply({
+                content: `❌ This invite is already being tracked as **${trackedInvites[inviteCode].name}**.`,
+                flags: 64
+            });
+            return;
+        }
+        
+        // Add new invite
+        trackedInvites[inviteCode] = {
+            name: customName,
+            uses: invite.uses,
+            addedAt: new Date().toISOString(),
+            addedBy: interaction.user.tag
+        };
+
+        // Save to database
+        if (saveTrackedInvites(trackedInvites)) {
+            const successEmbed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle('✅ Invite Added Successfully')
+                .addFields(
+                    { name: 'Invite Code', value: `\`${inviteCode}\``, inline: true },
+                    { name: 'Custom Name', value: customName, inline: true },
+                    { name: 'Current Uses', value: invite.uses.toString(), inline: true }
+                )
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [successEmbed], flags: 64 });
+        } else {
+            await interaction.reply({ 
+                content: '❌ Failed to save invite to database.', 
+                flags: 64 
+            });
+        }
+
+    } catch (error) {
+        console.error('Error adding invite:', error);
+        await interaction.reply({ 
+            content: '❌ Invalid invite code or invite not found in this server.', 
+            flags: 64 
+        });
+    }
+}
+
+async function handleRemoveInvite(interaction, inviteInput) {
+    if (!inviteInput) {
+        await interaction.reply({
+            content: '❌ Invite code/link is required for removing an invite.',
+            flags: 64
+        });
+        return;
+    }
+
+    const inviteCode = inviteInput.replace(/https?:\/\/(www\.)?(discord\.gg\/|discordapp\.com\/invite\/)/, '');
+    const trackedInvites = loadTrackedInvites();
+
+    if (trackedInvites[inviteCode]) {
+        const removedInvite = trackedInvites[inviteCode];
+        delete trackedInvites[inviteCode];
+
+        if (saveTrackedInvites(trackedInvites)) {
+            const removeEmbed = new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setTitle('🗑️ Invite Removed')
+                .setDescription(`Removed tracking for **${removedInvite.name}** (\`${inviteCode}\`)`)
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [removeEmbed], flags: 64 });
+        } else {
+            await interaction.reply({ 
+                content: '❌ Failed to remove invite from database.', 
+                flags: 64 
+            });
+        }
+    } else {
+        await interaction.reply({ 
+            content: '❌ This invite is not being tracked.', 
+            flags: 64 
+        });
+    }
+}
+
+async function handleListInvites(interaction) {
+    const trackedInvites = loadTrackedInvites();
+    
+    if (Object.keys(trackedInvites).length === 0) {
+        await interaction.reply({ 
+            content: '📝 No invites are currently being tracked.', 
+            flags: 64 
+        });
+        return;
+    }
+
+    const listEmbed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle('🔗 Tracked Invites')
+        .setTimestamp();
+
+    let description = '';
+    for (const [code, data] of Object.entries(trackedInvites)) {
+        description += `**${data.name}**\n`;
+        description += `Code: \`${code}\`\n`;
+        description += `Uses: ${data.uses}\n`;
+        description += `Added: ${new Date(data.addedAt).toLocaleDateString()}\n\n`;
+    }
+
+    listEmbed.setDescription(description);
+    await interaction.reply({ embeds: [listEmbed], flags: 64 });
+}
