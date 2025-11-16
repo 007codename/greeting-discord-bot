@@ -3,7 +3,7 @@ const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config.json');
-const { userJoinSources } = require('../utils/sharedData.js');
+const { addMember } = require('../utils/memberDatabase.js'); // FIXED: Use database instead of sharedData
 
 // Load tracked invites database
 function loadTrackedInvites() {
@@ -43,7 +43,7 @@ module.exports = {
             const welcomeEmbed = new EmbedBuilder()
                 .setColor(0x006AD7)
                 .setTitle(`🎉 Welcome to **${guild.name}**!`)
-                .setDescription(`You've just joined the #1 hub for Discord Bot Devs & Server Owners. Here's your starter pack: \n\n## 🔧 Browse bots \n* 📢 Post your creations \n* 🤖 Search/Request bots with ease \n* 📈 Earn Dev Points to rise in rank \n* 📚 Learn from guides & resources \n\n👉 Start here: \n<#1397911489427280034> \n Questions? Hit up: \n<#1359165556518949134> \n\n**Let’s make bots. Let’s make moves.**`)
+                .setDescription(`You've just joined the #1 hub for Discord Bot Devs & Server Owners. Here's your starter pack: \n\n## 🔧 Browse bots \n* 📢 Post your creations \n* 🤖 Search/Request bots with ease \n* 📈 Earn Dev Points to rise in rank \n* 📚 Learn from guides & resources \n\n👉 Start here: \n<#1397911489427280034> \n Questions? Hit up: \n<#1359165556518949134> \n\n**Let's make bots. Let's make moves.**`)
                 .setThumbnail(`https://media.discordapp.net/attachments/1287451518244753489/1396835161269604442/Bot_Market_Circle_Cropped_Logo.png?ex=688a139e&is=6888c21e&hm=240abc9990eff0c0a0402d38e50d79e83e4998fca87df6c912017460821623df&=&format=webp&quality=lossless&width=989&height=989`)
                 .setImage(`https://media.discordapp.net/attachments/1287451518244753489/1397687259196821584/Bot_Market_DC_ADS.png?ex=688a8a32&is=688938b2&hm=e9db85d4d62399b75cf27c41e13a23248ea05d5d4b05897a444efef1180c24ac&=&format=webp&quality=lossless&width=1860&height=646`)
                 .setFooter({ text: `The Bot Market Team`, iconURL: `https://media.discordapp.net/attachments/1287451518244753489/1396835161269604442/Bot_Market_Circle_Cropped_Logo.png?ex=688a139e&is=6888c21e&hm=240abc9990eff0c0a0402d38e50d79e83e4998fca87df6c912017460821623df&=&format=webp&quality=lossless&width=989&height=989` })
@@ -114,8 +114,8 @@ module.exports = {
                 console.log(`❌ Joins-leave channel not found. Check your config.json - Channel ID: ${config.joinLeaveChannelId}`);
             }
 
-            // Store how this user joined for leave tracking
-            userJoinSources.set(member.id, inviteSource);
+            // FIXED: Store how this user joined using the database
+            addMember(member.id, inviteSource);
 
             // Update cached invites
             client.guildInvites.set(guild.id, new Map());
