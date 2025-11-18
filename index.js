@@ -5,12 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
-// Create Discord client
+// Create Discord client with necessary intents
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildInvites,
+        GatewayIntentBits.GuildInvites,  // must; for invite tracking
         GatewayIntentBits.DirectMessages
     ]
 });
@@ -24,7 +24,6 @@ client.commands = new Collection();
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
 const commands = [];
 
 for (const file of commandFiles) {
@@ -86,17 +85,17 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Register slash commands globally
-const rest = new REST().setToken(process.env.BOT_TOKEN);
+const rest = new REST().setToken(process.env.GREETING_BOT_TOKEN);
 
 (async () => {
     try {
         console.log(`🔄 Started refreshing ${commands.length} global slash commands...`);
-
+        
         const data = await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
+            Routes.applicationCommands(process.env.GREETING_CLIENT_ID),
             { body: commands }
         );
-
+        
         console.log(`✅ Successfully reloaded ${data.length} global slash commands!`);
     } catch (error) {
         console.error('❌ Error registering commands:', error);
@@ -109,4 +108,4 @@ process.on('unhandledRejection', error => {
 });
 
 // Login to Discord
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.GREETING_BOT_TOKEN);
