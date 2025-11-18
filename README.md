@@ -14,10 +14,13 @@ greeting-bot/
  ├── events/
  │   ├── guildMemberAdd.js      # Handles new member joins (sends DM, tracks invite)
  │   ├── guildMemberRemove.js   # Handles member leaves
+ │   ├── inviteCreate.js        # Handles tracking new invites
+ │   ├── inviteDelete.js        # Handles the deletion of invites by removing them from the tracked invites database
  │   └── ready.js               # Logs bot startup
  ├── utils/
+ │   └── inviteValidator.js     # Functions to sync and validate Discord invites
  │   └── memberDatabase.js      # DB logic between
- ├── .env                       # Bot token
+ ├── .env                       # Bot token & Client ID
  ├── .gitignore                 # Ignores .env and node_modules
  ├── config.json                # Bot settings
  ├── index.js                   # Bot entry point
@@ -54,8 +57,8 @@ npm install
 ### 3. Set Up Environment Variables
 Rename the `.env.example` file to `.env` and add your bot token & id:
 ```env
-BOT_TOKEN=your_bot_token_here
-CLIENT_ID=your_client_id_here
+GREETING_BOT_TOKEN=your_bot_token_here
+GREETING_CLIENT_ID=your_client_id_here
 ```
 ⚠️ Don't share this. It's excluded from version control via `.gitignore`.
 
