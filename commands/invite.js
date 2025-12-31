@@ -1,4 +1,4 @@
-// commands/invites.js - Unified Invites management command
+// commands/invites.js - Unified Invites management command (with archived support)
 
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
@@ -82,7 +82,7 @@ module.exports = {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content: '❌ Error processing invite command.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
         }
@@ -93,7 +93,7 @@ async function handleAddCustomName(interaction, inviteInput, customName) {
     if (!inviteInput || !customName) {
         await interaction.reply({
             content: '❌ Both invite and name are required.',
-            ephemeral: true
+            flags: 64
         });
         return;
     }
@@ -103,18 +103,18 @@ async function handleAddCustomName(interaction, inviteInput, customName) {
     try {
         const invite = await interaction.guild.invites.fetch(inviteCode);
         const trackedInvites = loadTrackedInvites();
-        
+
         if (!trackedInvites[inviteCode]) {
             await interaction.reply({
                 content: `❌ This invite is not in the database. It should have been auto-tracked when created.`,
-                ephemeral: true
+                flags: 64
             });
             return;
         }
-        
+
         // Store original creator ID before updating
         const originalCreator = trackedInvites[inviteCode].createdBy;
-        
+
         // Update with custom name
         trackedInvites[inviteCode] = {
             ...trackedInvites[inviteCode],
@@ -135,19 +135,19 @@ async function handleAddCustomName(interaction, inviteInput, customName) {
                 .setFooter({ text: 'Members joining through this invite will now show this custom name' })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [successEmbed], flags: 64 });
         } else {
-            await interaction.reply({ 
-                content: '❌ Failed to save changes.', 
-                ephemeral: true 
+            await interaction.reply({
+                content: '❌ Failed to save changes.',
+                flags: 64
             });
         }
 
     } catch (error) {
         console.error('Error assigning custom name:', error);
-        await interaction.reply({ 
-            content: '❌ Invalid invite code or invite not found in this server.', 
-            ephemeral: true 
+        await interaction.reply({
+            content: '❌ Invalid invite code or invite not found in this server.',
+            flags: 64
         });
     }
 }
@@ -156,7 +156,7 @@ async function handleRemoveCustomName(interaction, inviteInput) {
     if (!inviteInput) {
         await interaction.reply({
             content: '❌ Invite code/link is required.',
-            ephemeral: true
+            flags: 64
         });
         return;
     }
@@ -166,15 +166,15 @@ async function handleRemoveCustomName(interaction, inviteInput) {
 
     if (trackedInvites[inviteCode]) {
         const inviteData = trackedInvites[inviteCode];
-        
+
         if (!inviteData.isCustomName) {
             await interaction.reply({
                 content: '❌ This invite doesn\'t have a custom name assigned.',
-                ephemeral: true
+                flags: 64
             });
             return;
         }
-        
+
         // Revert to original creator ID
         trackedInvites[inviteCode] = {
             ...inviteData,
@@ -191,37 +191,49 @@ async function handleRemoveCustomName(interaction, inviteInput) {
             } catch (error) {
                 creatorDisplay = `<@${trackedInvites[inviteCode].name}>`;
             }
-            
+
             const removeEmbed = new EmbedBuilder()
                 .setColor(0xFFA500)
                 .setTitle('🔄 Custom Name Removed')
                 .setDescription(`Invite \`${inviteCode}\` has been reverted to show creator: **${creatorDisplay}**`)
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [removeEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [removeEmbed], flags: 64 });
         } else {
-            await interaction.reply({ 
-                content: '❌ Failed to save changes.', 
-                ephemeral: true 
+            await interaction.reply({
+                content: '❌ Failed to save changes.',
+                flags: 64
             });
         }
     } else {
-        await interaction.reply({ 
-            content: '❌ This invite is not being tracked.', 
-            ephemeral: true 
+        await interaction.reply({
+            content: '❌ This invite is not being tracked.',
+            flags: 64
         });
     }
 }
 
 async function handleListInvites(interaction) {
     const trackedInvites = loadTrackedInvites();
-    
+
     if (Object.keys(trackedInvites).length === 0) {
-        await interaction.reply({ 
-            content: '📝 No invites are currently being tracked.', 
-            ephemeral: true 
+        await interaction.reply({
+            content: '📝 No invites are currently being tracked.',
+            flags: 64
         });
         return;
+    }
+
+    // Separate active and archived
+    const activeInvites = {};
+    const archivedInvites = {};
+
+    for (const [code, data] of Object.entries(trackedInvites)) {
+        if (data.archived) {
+            archivedInvites[code] = data;
+        } else {
+            activeInvites[code] = data;
+        }
     }
 
     const listEmbed = new EmbedBuilder()
@@ -230,74 +242,111 @@ async function handleListInvites(interaction) {
         .setTimestamp();
 
     let description = '';
-    for (const [code, data] of Object.entries(trackedInvites)) {
-        const nameType = data.isCustomName ? '🏷️ Custom' : '👤 Creator';
-        
-        // Try to resolve user ID to username if it's not a custom name
-        let displayName = data.name;
-        if (!data.isCustomName && data.name !== 'Unknown') {
-            try {
-                const user = await interaction.client.users.fetch(data.name);
-                displayName = user.tag;
-            } catch (error) {
-                displayName = `<@${data.name}>`;
+
+    // Show active invites
+    if (Object.keys(activeInvites).length > 0) {
+        description += '**✅ Active Invites**\n\n';
+        for (const [code, data] of Object.entries(activeInvites)) {
+            const nameType = data.isCustomName ? '🏷️ Custom' : '👤 Creator';
+
+            // Try to resolve user ID to username if it's not a custom name
+            let displayName = data.name;
+            if (!data.isCustomName && data.name !== 'Unknown') {
+                try {
+                    const user = await interaction.client.users.fetch(data.name);
+                    displayName = user.tag;
+                } catch (error) {
+                    displayName = `<@${data.name}>`;
+                }
             }
+
+            description += `${nameType} **${displayName}**\n`;
+            description += `Code: \`${code}\`\n`;
+            description += `Uses: ${data.uses}\n`;
+            description += `Created: ${new Date(data.createdAt).toLocaleDateString()}\n\n`;
         }
-        
-        description += `${nameType} **${displayName}**\n`;
-        description += `Code: \`${code}\`\n`;
-        description += `Uses: ${data.uses}\n`;
-        description += `Created: ${new Date(data.createdAt).toLocaleDateString()}\n\n`;
+    }
+
+    // Show archived invites
+    if (Object.keys(archivedInvites).length > 0) {
+        description += `\n**📦 Archived Invites (${Object.keys(archivedInvites).length})**\n\n`;
+        for (const [code, data] of Object.entries(archivedInvites).slice(0, 5)) {
+            const nameType = data.isCustomName ? '🏷️' : '👤';
+
+            let displayName = data.name;
+            if (!data.isCustomName && data.name !== 'Unknown') {
+                try {
+                    const user = await interaction.client.users.fetch(data.name);
+                    displayName = user.tag;
+                } catch (error) {
+                    displayName = `<@${data.name}>`;
+                }
+            }
+
+            description += `${nameType} ${displayName} • \`${code}\` • ${data.uses} uses\n`;
+        }
+
+        if (Object.keys(archivedInvites).length > 5) {
+            description += `\n*...and ${Object.keys(archivedInvites).length - 5} more archived invites*`;
+        }
     }
 
     listEmbed.setDescription(description);
-    await interaction.reply({ embeds: [listEmbed], ephemeral: true });
+    listEmbed.setFooter({
+        text: 'Archived invites are expired/deleted but preserved for historical tracking',
+        iconURL: interaction.guild.iconURL()
+    });
+
+    await interaction.reply({ embeds: [listEmbed], flags: 64 });
 }
 
 async function handleValidateInvites(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    
+    await interaction.deferReply({ flags: 64 });
+
     try {
         const stats = await validateInvites(interaction.guild);
-        
+
         if (stats.error) {
             await interaction.editReply({
                 content: `❌ Error during validation: ${stats.error}`
             });
             return;
         }
-        
+
         const validationEmbed = new EmbedBuilder()
-            .setColor(stats.removed > 0 ? 0xFF6B00 : 0x00FF00)
+            .setColor(stats.archived > 0 ? 0xFF6B00 : 0x00FF00)
             .setTitle('🔍 Invite Validation Complete')
             .setTimestamp();
-        
+
         let description = `**Total Tracked:** ${stats.total}\n`;
         description += `**Valid Invites:** ${stats.valid} ✅\n`;
-        description += `**Removed (Expired):** ${stats.removed} 🗑️\n\n`;
-        
-        if (stats.removed > 0) {
-            description += `**Removed Invites:**\n`;
-            for (const invite of stats.removedInvites.slice(0, 10)) {
+        description += `**Already Archived:** ${stats.alreadyArchived} 📦\n`;
+        description += `**Newly Archived:** ${stats.archived} 🗃️\n\n`;
+
+        if (stats.archived > 0) {
+            description += `**Newly Archived Invites:**\n`;
+            for (const invite of stats.archivedInvites.slice(0, 10)) {
                 const typeIcon = invite.isCustomName ? '🏷️' : '👤';
                 description += `${typeIcon} \`${invite.code}\` - ${invite.displayName} (${invite.uses} uses)\n`;
             }
-            
-            if (stats.removedInvites.length > 10) {
-                description += `\n*...and ${stats.removedInvites.length - 10} more*`;
+
+            if (stats.archivedInvites.length > 10) {
+                description += `\n*...and ${stats.archivedInvites.length - 10} more*`;
             }
+
+            description += `\n\n✨ *Archived invites are preserved for historical tracking and won't affect stats.*`;
         } else {
             description += `All tracked invites are still valid! ✨`;
         }
-        
+
         validationEmbed.setDescription(description);
-        validationEmbed.setFooter({ 
+        validationEmbed.setFooter({
             text: 'Validation checks against Discord\'s current invites',
             iconURL: interaction.guild.iconURL()
         });
-        
+
         await interaction.editReply({ embeds: [validationEmbed] });
-        
+
     } catch (error) {
         console.error('Error in validate command:', error);
         await interaction.editReply({
