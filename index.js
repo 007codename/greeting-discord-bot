@@ -73,7 +73,7 @@ client.on('interactionCreate', async interaction => {
         
         const errorMessage = { 
             content: 'There was an error executing this command!', 
-            ephemeral: true 
+            flags: 64 
         };
         
         if (interaction.replied || interaction.deferred) {
