@@ -1,4 +1,4 @@
-// commands/stats.js - Unified Statistics command (IMPROVED)
+// commands/stats.js - Unified Statistics command (with archived filtering)
 
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
@@ -45,7 +45,7 @@ module.exports = {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content: '❌ Error fetching statistics.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
         }
@@ -56,29 +56,34 @@ async function handleInviteStats(interaction) {
     const serverInvites = await interaction.guild.invites.fetch();
     const trackedInvites = loadTrackedInvites();
 
-    if (Object.keys(trackedInvites).length === 0) {
+    // Filter out archived invites
+    const activeTrackedInvites = Object.fromEntries(
+        Object.entries(trackedInvites).filter(([code, data]) => !data.archived)
+    );
+
+    if (Object.keys(activeTrackedInvites).length === 0) {
         await interaction.reply({
-            content: '📊 No tracked invites found.',
-            ephemeral: true
+            content: '📊 No active tracked invites found.',
+            flags: 64
         });
         return;
     }
 
     let totalTrackedUses = 0;
     let activeInvites = 0;
-    
+
     // Group invites by display name (custom names separate, creators grouped)
     const groupedStats = {};
 
-    for (const [code, data] of Object.entries(trackedInvites)) {
+    for (const [code, data] of Object.entries(activeTrackedInvites)) {
         const serverInvite = serverInvites.get(code);
         const isActive = !!serverInvite;
         const currentUses = isActive ? serverInvite.uses : data.uses;
-        
+
         // Resolve display name
         let displayName = data.name;
         let groupKey = data.name; // Key for grouping
-        
+
         if (data.isCustomName) {
             // Custom names are NOT grouped - each gets its own entry
             displayName = data.name;
@@ -97,7 +102,7 @@ async function handleInviteStats(interaction) {
             displayName = 'Unknown';
             groupKey = 'unknown';
         }
-        
+
         // Initialize or update group
         if (!groupedStats[groupKey]) {
             groupedStats[groupKey] = {
@@ -109,7 +114,7 @@ async function handleInviteStats(interaction) {
                 codes: []
             };
         }
-        
+
         groupedStats[groupKey].totalUses += currentUses;
         groupedStats[groupKey].inviteCount += 1;
         if (isActive) {
@@ -117,9 +122,9 @@ async function handleInviteStats(interaction) {
             activeInvites++;
         }
         groupedStats[groupKey].codes.push(code);
-        
+
         totalTrackedUses += currentUses;
-        
+
         // Update uses in database if active
         if (isActive) {
             trackedInvites[code].uses = currentUses;
@@ -140,7 +145,7 @@ async function handleInviteStats(interaction) {
     const statsEmbed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle('📊 Invite Usage Statistics')
-        .setDescription(`Tracking **${Object.keys(trackedInvites).length}** invites with **${totalTrackedUses}** total uses`)
+        .setDescription(`Tracking **${Object.keys(activeTrackedInvites).length}** active invites with **${totalTrackedUses}** total uses`)
         .setThumbnail(interaction.guild.iconURL())
         .setTimestamp();
 
@@ -148,10 +153,10 @@ async function handleInviteStats(interaction) {
     for (const stats of sortedStats.slice(0, 15)) {
         const percentage = totalTrackedUses > 0 ? ((stats.totalUses / totalTrackedUses) * 100).toFixed(1) : '0.0';
         const typeIcon = stats.isCustomName ? '🏷️' : '👤';
-        const statusInfo = stats.inviteCount > 1 
-            ? ` (${stats.inviteCount} invites, ${stats.activeCount} active)` 
+        const statusInfo = stats.inviteCount > 1
+            ? ` (${stats.inviteCount} invites, ${stats.activeCount} active)`
             : stats.activeCount === 0 ? ' ⚠️' : '';
-        
+
         inviteDescription += `${typeIcon} **${stats.displayName}${statusInfo}**\n`;
         inviteDescription += `└ ${stats.totalUses} uses (${percentage}%)\n\n`;
     }
@@ -166,14 +171,23 @@ async function handleInviteStats(interaction) {
 
     statsEmbed.addFields({
         name: '📋 Summary',
-        value: `Active: **${activeInvites}/${Object.keys(trackedInvites).length}** | Total Uses: **${totalTrackedUses}**`,
+        value: `Active: **${activeInvites}/${Object.keys(activeTrackedInvites).length}** | Total Uses: **${totalTrackedUses}**`,
         inline: false
     });
 
-    statsEmbed.setFooter({
-        text: `${interaction.guild.name} • 🏷️ = Custom Name | 👤 = Creator (grouped)`,
-        iconURL: interaction.guild.iconURL()
-    });
+    // Show archived count if any exist
+    const archivedCount = Object.keys(trackedInvites).length - Object.keys(activeTrackedInvites).length;
+    if (archivedCount > 0) {
+        statsEmbed.setFooter({
+            text: `${interaction.guild.name} • ${archivedCount} archived invites (use /invites list to view)`,
+            iconURL: interaction.guild.iconURL()
+        });
+    } else {
+        statsEmbed.setFooter({
+            text: `${interaction.guild.name} • 🏷️ = Custom Name | 👤 = Creator (grouped)`,
+            iconURL: interaction.guild.iconURL()
+        });
+    }
 
     await interaction.reply({ embeds: [statsEmbed] });
 }
@@ -185,32 +199,32 @@ async function handleMemberStats(interaction) {
     if (totalMembers === 0) {
         await interaction.reply({
             content: '📊 No tracked members found.',
-            ephemeral: true
+            flags: 64
         });
         return;
     }
 
     const trackedInvites = loadTrackedInvites();
-    
+
     // Group members by creator (for unnamed invites) or custom name
     const groupedStats = {};
-    
+
     for (const inviteCode of Object.values(allMembers)) {
         if (inviteCode === 'unknown' || inviteCode === 'untracked') {
             groupedStats['Unknown'] = (groupedStats['Unknown'] || 0) + 1;
             continue;
         }
-        
+
         const inviteData = trackedInvites[inviteCode];
         if (!inviteData) {
             groupedStats['Unknown'] = (groupedStats['Unknown'] || 0) + 1;
             continue;
         }
-        
+
         // Resolve display name and group key
         let displayName = inviteData.name;
         let groupKey = inviteData.name;
-        
+
         if (inviteData.isCustomName) {
             // Custom names stay separate
             displayName = inviteData.name;
@@ -229,7 +243,7 @@ async function handleMemberStats(interaction) {
             displayName = 'Unknown';
             groupKey = 'unknown';
         }
-        
+
         // Use groupKey for counting (so multiple invites by same creator are grouped)
         if (!groupedStats[groupKey]) {
             groupedStats[groupKey] = {
