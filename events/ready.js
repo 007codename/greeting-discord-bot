@@ -10,13 +10,11 @@ module.exports = {
         console.log(`👋 Bot is ready! Logged in as ${client.user.tag}`);
        
         const statusMessages = [
-            { text: '👥 new members join', type: ActivityType.Watching },
-            { text: '📊 invite tracking', type: ActivityType.Playing },
-            { text: 'DEV: 007codename', type: ActivityType.Playing },
-            { text: '🔗 invite analytics', type: ActivityType.Listening },
-            { text: 'over server growth', type: ActivityType.Watching },
-            { text: '📈 member statistics', type: ActivityType.Watching },
-            { text: '🎯 join/leave events', type: ActivityType.Watching }
+            { text: '👥 Watching new members join', type: ActivityType.Custom },
+            { text: '📊 Invites & Member analytics', type: ActivityType.Custom },
+            { text: 'Made by @007codename', type: ActivityType.Custom },
+            { text: '📈 Watching over server growth', type: ActivityType.Custom },
+            { text: '🎯 Watching join/leave events', type: ActivityType.Custom }
         ];
        
         let currentIndex = 0;
