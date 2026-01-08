@@ -1,5 +1,6 @@
 // events/guildMemberAdd.js - Member join event
-const { EmbedBuilder } = require('discord.js');
+const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const canvacord = require('canvacord');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config.json');
@@ -27,6 +28,20 @@ function updateInviteUses(inviteCode, uses) {
         }
     } catch (error) {
         console.error('❌ Error updating invite uses:', error);
+    }
+}
+
+function createWelcomeBuilder() {
+    const WelcomeBuilder = canvacord?.Welcome || canvacord?.default?.Welcome;
+
+    if (typeof WelcomeBuilder !== 'function') {
+        throw new Error('Welcome card builder not available from canvacord.');
+    }
+
+    try {
+        return new WelcomeBuilder();
+    } catch (error) {
+        return WelcomeBuilder();
     }
 }
 
@@ -157,6 +172,40 @@ module.exports = {
                 }
             } else {
                 console.log(`❌ Joins-leave channel not found. Check your config.json`);
+            }
+
+            // Send welcome card to a separate channel (if configured)
+            if (config.welcomeCardChannelId) {
+                const cardChannel = guild.channels.cache.get(config.welcomeCardChannelId);
+
+                if (cardChannel) {
+                    const botMember = guild.members.cache.get(client.user.id);
+                    const permissions = cardChannel.permissionsFor(botMember);
+
+                    if (!permissions.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+                        console.log(`❌ Bot missing permissions in welcome-card channel: ${cardChannel.name}`);
+                    } else {
+                        const card = await createWelcomeBuilder()
+                            .setUsername(member.user.username)
+                            .setDiscriminator(member.user.discriminator || '0000')
+                            .setGuildName(guild.name)
+                            .setMemberCount(guild.memberCount)
+                            .setAvatar(member.user.displayAvatarURL({ extension: 'png', size: 512 }))
+                            .build();
+
+                        const attachment = new AttachmentBuilder(card, { name: 'welcome.png' });
+                        const cardEmbed = new EmbedBuilder()
+                            .setColor(0xFACC15)
+                            .setDescription(`Welcome, ${member}!`)
+                            .setImage('attachment://welcome.png')
+                            .setTimestamp();
+
+                        await cardChannel.send({ embeds: [cardEmbed], files: [attachment] });
+                        console.log(`🖼️ Sent welcome card to ${cardChannel.name}`);
+                    }
+                } else {
+                    console.log(`❌ Welcome-card channel not found. Check your config.json`);
+                }
             }
 
             // Update cached invites for next comparison
