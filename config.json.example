@@ -1,4 +1,5 @@
 {
-    "guildId": "your_guild_id",
-    "joinLeaveChannelId": "your_join_leave_channel_id"
+    "joinLeaveChannelId": "your_join_leave_channel_id",
+    "welcomeCardChannelId": "your_welcome_card_channel_id",
+    "welcomeCardBackground": "https://your-image-url.com/background.png"
 }
