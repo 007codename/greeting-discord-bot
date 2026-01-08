@@ -1,5 +1,6 @@
 // events/guildMemberAdd.js - Member join event
-const { EmbedBuilder } = require('discord.js');
+const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const WelcomeCard = require('../models/WelcomeCard');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config.json');
@@ -70,7 +71,7 @@ module.exports = {
             const welcomeEmbed = new EmbedBuilder()
                 .setColor(0x006AD7)
                 .setTitle(`🎉 Welcome to **${guild.name}**!`)
-                .setDescription(`You've just joined the **#1** Dev Hub on Discord. Here's your starter pack: \n\n* 🛠️ Explore community projects\n* 📢 Share your work and get noticed\n* 🧠 Join collabs and events\n* 📈 Earn Dev Points as you contribute\n* 📚 Use guides and resources to level up\n\n👇 **Start here:**\n<id:guide>\n\n⁉️ **Need help?**\n<#1359165556518949134> \n\n**Build cool stuff. Be part of something bigger.**`)
+                .setDescription(`You've just joined the **#1** Dev Hub on Discord. Here's your starter pack: \n\n* 🛠️ Explore community projects\n* 📢 Share your work and get noticed\n* 🧠 Join collabs and events\n* 📈 Earn Dev Points as you contribute\n* 📚 Use guides and resources to level up\n\n👇 **Start here:**\n<#1447291855199928511>\n\n⁉️ **Need help?**\n<#1359165556518949134> \n\n**Build cool stuff. Be part of something bigger.**`)
                 .setThumbnail(guild.iconURL({ dynamic: true, size: 4096 }))
                 .setImage(`https://media.discordapp.net/attachments/1287451518244753489/1436825983628869812/Banner.png?ex=691c38b9&is=691ae739&hm=e49df9b932a706f9c595baa4cfc8f6aebdffb05d446a5bc00b8bd9771d5054f2&=&format=webp&quality=lossless&width=1860&height=485`)
                 .setFooter({ 
@@ -159,6 +160,63 @@ module.exports = {
                 console.log(`❌ Joins-leave channel not found. Check your config.json`);
             }
 
+            // Send welcome card to a separate channel (if configured)
+            if (config.welcomeCardChannelId) {
+                const cardChannel = guild.channels.cache.get(config.welcomeCardChannelId);
+
+                if (cardChannel) {
+                    const botMember = guild.members.cache.get(client.user.id);
+                    const permissions = cardChannel.permissionsFor(botMember);
+
+                    if (!permissions.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+                        console.log(`❌ Bot missing permissions in welcome-card channel: ${cardChannel.name}`);
+                    } else {
+                        try {
+                            // Ensure avatar is PNG (not GIF) to prevent crashes
+                            const avatarUrl = member.user.displayAvatarURL({ 
+                                extension: 'png', 
+                                size: 512,
+                                forceStatic: true  // Force static image, never GIF
+                            });
+
+                            const card = new WelcomeCard()
+                                .setDisplayName(member.user.username)
+                                .setMemberCount(guild.memberCount)
+                                .setAvatar(avatarUrl);
+
+                            // Add custom background if configured
+                            if (config.welcomeCardBackground) {
+                                card.setBackgroundImage(config.welcomeCardBackground);
+                            }
+
+                            const cardImage = await card.build({ format: 'png' });
+
+                            const attachment = new AttachmentBuilder(cardImage, { name: 'welcome.png' });
+
+                            const welcomeMessage = `👋 **Welcome to the server, ${member}!**
+
+Glad you're here. Before jumping in, take **30 seconds** to read <#1447291855199928511>.
+It explains how things work and saves everyone time *(including yours)*.
+
+Then jump into the conversations and make yourself at home.`;
+
+                            await cardChannel.send({ content: welcomeMessage, files: [attachment] });
+                            console.log(`🖼️ Sent welcome card to ${cardChannel.name}`);
+                        } catch (cardError) {
+                            console.error(`❌ Error generating welcome card for ${member.user.tag}:`, cardError.message);
+                            
+                            // Fallback: Send a text message instead
+                            const fallbackMessage = `👋 ${member}\nWelcome to **buidly.**`;
+                            
+                            await cardChannel.send(fallbackMessage);
+                            console.log(`📝 Sent fallback welcome message to ${cardChannel.name}`);
+                        }
+                    }
+                } else {
+                    console.log(`❌ Welcome-card channel not found. Check your config.json`);
+                }
+            }
+            
             // Update cached invites for next comparison
             client.guildInvites.set(guild.id, new Map());
             newInvites.forEach(invite => {
