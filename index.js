@@ -85,14 +85,14 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Register slash commands globally
-const rest = new REST().setToken(process.env.GREETING_BOT_TOKEN);
+const rest = new REST().setToken(process.env.BOT_TOKEN);
 
 (async () => {
     try {
         console.log(`🔄 Started refreshing ${commands.length} global slash commands...`);
         
         const data = await rest.put(
-            Routes.applicationCommands(process.env.GREETING_CLIENT_ID),
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
         );
         
@@ -108,4 +108,4 @@ process.on('unhandledRejection', error => {
 });
 
 // Login to Discord
-client.login(process.env.GREETING_BOT_TOKEN);
+client.login(process.env.BOT_TOKEN);
