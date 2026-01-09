@@ -8,7 +8,7 @@ const { addMember } = require('../utils/memberDatabase.js');
 
 function loadTrackedInvites() {
     try {
-        const data = fs.readFileSync(path.join(__dirname, '../database/invites.json'), 'utf8');
+        const data = fs.readFileSync(path.join(__dirname, '../data/invites.json'), 'utf8');
         return JSON.parse(data);
     } catch (error) {
         console.error('❌ Error loading tracked invites:', error);
@@ -22,7 +22,7 @@ function updateInviteUses(inviteCode, uses) {
         if (trackedInvites[inviteCode]) {
             trackedInvites[inviteCode].uses = uses;
             fs.writeFileSync(
-                path.join(__dirname, '../database/invites.json'), 
+                path.join(__dirname, '../data/invites.json'), 
                 JSON.stringify(trackedInvites, null, 2)
             );
         }

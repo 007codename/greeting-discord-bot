@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const INVITES_PATH = path.join(__dirname, '../database/invites.json');
+const INVITES_PATH = path.join(__dirname, '../data/invites.json');
 
 function loadTrackedInvites() {
     try {

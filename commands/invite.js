@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { validateInvites } = require('../utils/inviteValidator.js');
 
-const INVITES_PATH = path.join(__dirname, '../database/invites.json');
+const INVITES_PATH = path.join(__dirname, '../data/invites.json');
 
 function ensureDatabaseExists() {
     if (!fs.existsSync(path.dirname(INVITES_PATH))) {

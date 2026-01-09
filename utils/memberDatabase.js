@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const MEMBERS_PATH = path.join(__dirname, '../database/members.json');
+const MEMBERS_PATH = path.join(__dirname, '../data/members.json');
 
 // Ensure database file exists
 function ensureDatabaseExists() {
