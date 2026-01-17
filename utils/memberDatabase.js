@@ -1,7 +1,6 @@
 // utils/memberDatabase.js - Member join tracking database
 const fs = require('fs');
 const path = require('path');
-
 const MEMBERS_PATH = path.join(__dirname, '../data/members.json');
 
 // Ensure database file exists
@@ -72,6 +71,30 @@ function getMemberCount() {
     return Object.keys(memberData).length;
 }
 
+// Remove members who left the server
+function removeLeftMembers(currentMemberIds) {
+    const memberData = loadMemberData();
+    let removedCount = 0;
+    
+    // Convert currentMemberIds to a Set for faster lookups
+    const currentMemberSet = new Set(currentMemberIds);
+    
+    // Check each tracked member
+    for (const userId in memberData) {
+        if (!currentMemberSet.has(userId)) {
+            delete memberData[userId];
+            removedCount++;
+        }
+    }
+    
+    if (removedCount > 0) {
+        saveMemberData(memberData);
+        console.log(`🧹 Removed ${removedCount} members who left the server`);
+    }
+    
+    return removedCount;
+}
+
 module.exports = {
     addMember,
     getMemberJoinSource,
@@ -79,5 +102,6 @@ module.exports = {
     getAllMembers,
     getMemberCount,
     loadMemberData,
-    saveMemberData
+    saveMemberData,
+    removeLeftMembers
 };

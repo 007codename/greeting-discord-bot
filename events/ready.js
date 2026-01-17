@@ -1,6 +1,6 @@
 // events/ready.js - Bot ready event
 const { ActivityType } = require('discord.js');
-const { addMember, getMemberCount, getAllMembers } = require('../utils/memberDatabase.js');
+const { addMember, getMemberCount, getAllMembers, removeLeftMembers } = require('../utils/memberDatabase.js');
 const { syncInvitesToDatabase } = require('../utils/inviteValidator.js');
 
 module.exports = {
@@ -77,19 +77,33 @@ module.exports = {
                 
                 console.log(`  💾 Cached ${invites.size} invites for tracking`);
                
-                // STEP 3: Track existing members
+                // STEP 3: Sync member database with current server members
                 await guild.members.fetch();
+                
+                // Get all current member IDs (excluding bots)
+                const currentMemberIds = guild.members.cache
+                    .filter(member => !member.user.bot)
+                    .map(member => member.id);
+                
+                // Remove members who left from database
+                const removedCount = removeLeftMembers(currentMemberIds);
+                
+                // Get updated tracked members after cleanup
                 const trackedMembers = getAllMembers();
-                let existingMemberCount = 0;
+                let addedMemberCount = 0;
                
+                // Add any new members that aren't tracked yet
                 for (const member of guild.members.cache.values()) {
                     if (!member.user.bot && !trackedMembers[member.id]) {
                         addMember(member.id, 'unknown');
-                        existingMemberCount++;
+                        addedMemberCount++;
                     }
                 }
 
-                console.log(`  👥 Added ${existingMemberCount} existing members to tracking`);
+                console.log(`  👥 Added ${addedMemberCount} new members to tracking`);
+                if (removedCount > 0) {
+                    console.log(`  🧹 Cleaned up ${removedCount} members who left`);
+                }
                 console.log(`✅ Setup complete for ${guild.name}`);
                
             } catch (error) {
